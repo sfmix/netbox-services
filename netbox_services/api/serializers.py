@@ -4,6 +4,7 @@ from dcim.models import Cable, Device, Interface
 from ipam.models import ASN, VLAN, VRF, Prefix, RouteTarget
 from netbox.api.serializers import NetBoxModelSerializer
 from netbox_services.models import Service
+from tenancy.models import Tenant
 from virtualization.models import VirtualMachine
 from vpn.models import L2VPN, Tunnel
 
@@ -18,6 +19,7 @@ class ServiceSerializer(NetBoxModelSerializer):
     url = serializers.HyperlinkedIdentityField(
         view_name='plugins-api:netbox_services-api:service-detail'
     )
+    tenants = related(Tenant)
     devices = related(Device)
     interfaces = related(Interface)
     cables = related(Cable)
@@ -45,6 +47,7 @@ class ServiceSerializer(NetBoxModelSerializer):
             'cir',
             'sla_uptime_percent',
             'tenant',
+            'tenants',
             'order_date',
             'planned_activation',
             'installed',

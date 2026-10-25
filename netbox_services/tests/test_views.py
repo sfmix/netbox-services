@@ -1,7 +1,9 @@
 from django.contrib.auth import get_user_model
+from django.contrib.contenttypes.models import ContentType
 from django.test import Client, TestCase
 from django.urls import reverse
 
+from tenancy.models import Tenant
 from users.models import ObjectPermission
 
 from netbox_services.models import Service
@@ -64,3 +66,33 @@ class ServiceViewTestCase(TestCase):
         url = reverse('plugins:netbox_services:service_delete', kwargs={'pk': self.service.pk})
         self.client.post(url, {'confirm': True})
         self.assertFalse(Service.objects.filter(pk=self.service.pk).exists())
+
+    def test_detail_view_lists_parties(self):
+        self._grant('view')
+        self.service.tenants.add(Tenant.objects.create(name='Globex', slug='globex'))
+        url = reverse('plugins:netbox_services:service_view', kwargs={'pk': self.service.pk})
+        response = self.client.get(url)
+        self.assertContains(response, 'Globex')
+
+    def _grant_view_tenants(self):
+        # Edit views restrict related-object choices to what the user can view
+        permission = ObjectPermission.objects.create(name='Tenant view', actions=['view'])
+        permission.object_types.add(ContentType.objects.get_for_model(Tenant))
+        permission.users.add(self.user)
+
+    def test_relate_tenants_assigns_parties(self):
+        self._grant('view', 'change')
+        self._grant_view_tenants()
+        acme = Tenant.objects.create(name='Acme', slug='acme')
+        globex = Tenant.objects.create(name='Globex', slug='globex')
+        url = reverse('plugins:netbox_services:relate_tenants', kwargs={'pk': self.service.pk})
+        self.client.post(url, {'tenants': [acme.pk, globex.pk]})
+        self.assertEqual(set(self.service.tenants.all()), {acme, globex})
+
+    def test_relate_tenants_can_clear_parties(self):
+        self._grant('view', 'change')
+        self._grant_view_tenants()
+        self.service.tenants.add(Tenant.objects.create(name='Acme', slug='acme'))
+        url = reverse('plugins:netbox_services:relate_tenants', kwargs={'pk': self.service.pk})
+        self.client.post(url, {})
+        self.assertFalse(self.service.tenants.exists())

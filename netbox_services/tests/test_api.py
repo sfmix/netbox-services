@@ -4,6 +4,7 @@ from django.urls import reverse
 from rest_framework import status
 
 from ipam.models import VLAN
+from tenancy.models import Tenant
 from utilities.testing import APITestCase
 
 from netbox_services.models import Service
@@ -203,3 +204,35 @@ class ServiceRelationsAPITestCase(APITestCase):
         )
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
         self.assertFalse(self.dia.depends_on.exists())
+
+
+class ServicePartiesAPITestCase(APITestCase):
+    model = Service
+
+    @classmethod
+    def setUpTestData(cls):
+        cls.acme = Tenant.objects.create(name='Acme', slug='acme')
+        cls.globex = Tenant.objects.create(name='Globex', slug='globex')
+        cls.service = Service.objects.create(service_id='L2-1', type='l2vpn', tenant=cls.acme)
+        cls.service.tenants.set([cls.acme, cls.globex])
+
+    def test_parties_exposed_in_detail(self):
+        self.add_permissions('netbox_services.view_service')
+        url = reverse('plugins-api:netbox_services-api:service-detail', kwargs={'pk': self.service.pk})
+        response = self.client.get(url, **self.header)
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(sorted(response.data['tenants']), sorted([self.acme.pk, self.globex.pk]))
+
+    def test_filter_by_party(self):
+        self.add_permissions('netbox_services.view_service')
+        url = reverse('plugins-api:netbox_services-api:service-list')
+        response = self.client.get(url, {'tenants': 'globex'}, **self.header)
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.data['count'], 1)
+
+    def test_patch_sets_parties(self):
+        self.add_permissions('netbox_services.change_service')
+        url = reverse('plugins-api:netbox_services-api:service-detail', kwargs={'pk': self.service.pk})
+        response = self.client.patch(url, {'tenants': [self.globex.pk]}, format='json', **self.header)
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(list(self.service.tenants.all()), [self.globex])

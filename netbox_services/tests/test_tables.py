@@ -23,3 +23,17 @@ class ServiceListTableTestCase(TestCase):
 
         table = ServiceListTable(Service.objects.all())
         self.assertEqual(table.rows[0].get_cell('depends_on'), '—')
+
+
+    def test_tenants_column_renders_parties(self):
+        from tenancy.models import Tenant
+        service = Service.objects.create(service_id='L2-1', type='l2vpn')
+        service.tenants.set([
+            Tenant.objects.create(name='Acme', slug='acme'),
+            Tenant.objects.create(name='Globex', slug='globex'),
+        ])
+
+        table = ServiceListTable(Service.objects.all())
+        table_html = table.as_html(self.request)
+        self.assertIn('Acme', table_html)
+        self.assertIn('Globex', table_html)

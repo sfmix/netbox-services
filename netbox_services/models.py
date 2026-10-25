@@ -95,6 +95,14 @@ class Service(ImageAttachmentsMixin, NetBoxModel):
         null=True,
         blank=True
     )
+    tenants = models.ManyToManyField(
+        Tenant,
+        related_name='party_services',
+        blank=True,
+        verbose_name='Parties',
+        help_text='Every tenant party to the service (e.g. both ends of a point-to-point L2VPN); '
+                  'Tenant stays the primary/billing tenant',
+    )
     order_date = models.DateField(
         verbose_name='Order date',
         blank=True,

@@ -12,6 +12,10 @@ class ServiceListTable(NetBoxTable):
         verbose_name='Service ID',
 
     )
+    tenants = columns.ManyToManyColumn(
+        linkify_item=True,
+        verbose_name='Parties',
+    )
     depends_on = columns.ManyToManyColumn(
         linkify_item=True,
         verbose_name='Depends On',
@@ -29,6 +33,7 @@ class ServiceListTable(NetBoxTable):
             'cir',
             'sla_uptime_percent',
             'tenant',
+            'tenants',
             'order_date',
             'planned_activation',
             'installed',

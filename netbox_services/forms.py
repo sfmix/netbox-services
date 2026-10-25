@@ -57,6 +57,11 @@ class ServiceFilterSetForm(NetBoxModelFilterSetForm):
         required=False,
         label='Tenant'
     )
+    tenants_id = forms.ModelMultipleChoiceField(
+        queryset=Tenant.objects.filter(party_services__isnull=False).distinct(),
+        required=False,
+        label='Parties'
+    )
 
 
 def related_objects_form(field_name):
@@ -72,6 +77,7 @@ def related_objects_form(field_name):
     )
 
 
+ServiceRelatedTenantsForm = related_objects_form('tenants')
 ServiceRelatedDevicesForm = related_objects_form('devices')
 ServiceRelatedCablesForm = related_objects_form('cables')
 ServiceRelatedVLANsForm = related_objects_form('vlans')
