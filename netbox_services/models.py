@@ -190,7 +190,11 @@ class Service(ImageAttachmentsMixin, NetBoxModel):
         verbose_name='Depends On',
         help_text='Other services this one relies on (e.g. an L3VPN riding over a DIA circuit)',
     )
+    # Same as NetBoxModel's tags (NetBox tags via extras.TaggedItem), with a related_name that
+    # doesn't collide with ipam.Service on NetBox releases that don't interpolate one
     tags = TaggableManager(
+        through='extras.TaggedItem',
+        ordering=('weight', 'name'),
         related_name='netbox_services_service_set',
     )
 
