@@ -22,6 +22,18 @@ Each Service has:
 
 Status reuses NetBox circuit statuses so services line up with how circuits are already tracked.
 
+Service types can be extended (or replaced) with NetBox's
+[`FIELD_CHOICES`](https://netboxlabs.com/docs/netbox/configuration/data-validation/#field_choices)
+setting:
+
+```python
+FIELD_CHOICES = {
+    'netbox_services.Service.type+': (
+        ('ixp_port', 'IX Port'),
+    ),
+}
+```
+
 ## Why not just tags?
 
 A tag is a label; a Service is a record. Tagging a prefix `dia` doesn't tell you which customer it's for, when it was ordered, or which interface hands it off — a Service does.

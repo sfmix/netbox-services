@@ -21,6 +21,9 @@ def service_attachment_upload(instance, filename):
 
 
 class ServiceTypeChoices(ChoiceSet):
+    # Lets operators add or replace types via FIELD_CHOICES['netbox_services.Service.type(+)']
+    key = 'Service.type'
+
     CHOICES = [
         ('l2vpn', 'L2VPN'),
         ('l3vpn', 'L3VPN'),
