@@ -1,25 +1,35 @@
 from rest_framework import serializers
 
+from dcim.models import Cable, Device, Interface
+from ipam.models import ASN, VLAN, VRF, Prefix, RouteTarget
 from netbox.api.serializers import NetBoxModelSerializer
 from netbox_services.models import Service
+from virtualization.models import VirtualMachine
+from vpn.models import L2VPN, Tunnel
+
+
+def related(model):
+    """Writable list of primary keys for one of Service's related-object M2M fields."""
+    return serializers.PrimaryKeyRelatedField(many=True, required=False, queryset=model.objects.all())
+
 
 class ServiceSerializer(NetBoxModelSerializer):
 
     url = serializers.HyperlinkedIdentityField(
         view_name='plugins-api:netbox_services-api:service-detail'
     )
-    devices = serializers.PrimaryKeyRelatedField(many=True, read_only=True)
-    interfaces = serializers.PrimaryKeyRelatedField(many=True, read_only=True)
-    cables = serializers.PrimaryKeyRelatedField(many=True, read_only=True)
-    vlans = serializers.PrimaryKeyRelatedField(many=True, read_only=True)
-    prefixes = serializers.PrimaryKeyRelatedField(many=True, read_only=True)
-    vrfs = serializers.PrimaryKeyRelatedField(many=True, read_only=True)
-    asns = serializers.PrimaryKeyRelatedField(many=True, read_only=True)
-    route_targets = serializers.PrimaryKeyRelatedField(many=True, read_only=True)
-    l2vpns = serializers.PrimaryKeyRelatedField(many=True, read_only=True)
-    tunnels = serializers.PrimaryKeyRelatedField(many=True, read_only=True)
-    virtual_machines = serializers.PrimaryKeyRelatedField(many=True, read_only=True)
-    depends_on = serializers.PrimaryKeyRelatedField(many=True, read_only=True)
+    devices = related(Device)
+    interfaces = related(Interface)
+    cables = related(Cable)
+    vlans = related(VLAN)
+    prefixes = related(Prefix)
+    vrfs = related(VRF)
+    asns = related(ASN)
+    route_targets = related(RouteTarget)
+    l2vpns = related(L2VPN)
+    tunnels = related(Tunnel)
+    virtual_machines = related(VirtualMachine)
+    depends_on = related(Service)
     dependents = serializers.PrimaryKeyRelatedField(many=True, read_only=True)
 
     class Meta:

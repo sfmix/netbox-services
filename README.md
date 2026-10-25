@@ -47,7 +47,8 @@ The detail page is laid out for that: technical inventory on the left, lifecycle
 - Bulk delete from the list view
 - Changelog, tags, and custom fields (`NetBoxModel`)
 - REST API under `/api/plugins/services/` (list/detail include `id`, lifecycle fields, and
-  dependencies; query-string filtering works the same as the UI)
+  dependencies; query-string filtering works the same as the UI). Related objects (`devices`,
+  `interfaces`, `vlans`, `depends_on`, ...) are lists of IDs and can be written on create/update
 - File attachments and native image attachments
 
 ## Usage
