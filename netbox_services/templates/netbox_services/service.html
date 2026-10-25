@@ -27,6 +27,18 @@
           <td>{{ object.tenant|linkify|placeholder }}</td>
         </tr>
         <tr>
+          <th scope="row">{% trans "Parties" %}</th>
+          <td>
+            {# General is a two-column card, so the Assign button shares the value cell #}
+            <a href="{% url 'plugins:netbox_services:relate_tenants' pk=object.pk %}" class="btn btn-sm btn-ghost-primary float-end">{% trans "Assign" %}</a>
+            {% for tenant in object.tenants.all %}
+              {{ tenant|linkify }}{% if not forloop.last %}<br>{% endif %}
+            {% empty %}
+              {{ ''|placeholder }}
+            {% endfor %}
+          </td>
+        </tr>
+        <tr>
           <th scope="row">{% trans "Status" %}</th>
           <td>{% badge object.get_status_display bg_color=object.get_status_color %}</td>
         </tr>

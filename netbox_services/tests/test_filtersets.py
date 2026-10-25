@@ -118,3 +118,31 @@ class ServiceCapacityFilterSetTestCase(TestCase):
         results = self.filterset({'decommission_reason': ['churn']}, self.queryset).qs
         self.assertEqual(results.count(), 1)
         self.assertEqual(results.first().service_id, 'NW-3')
+
+
+class ServicePartiesFilterSetTestCase(TestCase):
+    queryset = Service.objects.all()
+    filterset = ServiceFilterSet
+
+    @classmethod
+    def setUpTestData(cls):
+        cls.acme = Tenant.objects.create(name='Acme', slug='acme')
+        cls.globex = Tenant.objects.create(name='Globex', slug='globex')
+        cls.initech = Tenant.objects.create(name='Initech', slug='initech')
+
+        pvlan = Service.objects.create(service_id='L2-1', type='l2vpn', tenant=cls.acme)
+        pvlan.tenants.set([cls.acme, cls.globex])
+        dia = Service.objects.create(service_id='DIA-1', type='dia', tenant=cls.initech)
+        dia.tenants.set([cls.initech])
+
+    def test_filter_by_party_id(self):
+        results = self.filterset({'tenants_id': [self.globex.pk]}, self.queryset).qs
+        self.assertEqual([s.service_id for s in results], ['L2-1'])
+
+    def test_filter_by_party_slug(self):
+        results = self.filterset({'tenants': ['initech']}, self.queryset).qs
+        self.assertEqual([s.service_id for s in results], ['DIA-1'])
+
+    def test_party_filter_does_not_duplicate_rows(self):
+        results = self.filterset({'tenants_id': [self.acme.pk, self.globex.pk]}, self.queryset).qs
+        self.assertEqual(results.count(), 1)

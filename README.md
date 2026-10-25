@@ -13,7 +13,7 @@ Each Service has:
 
 | Area | Fields |
 | --- | --- |
-| Identity | Unique `service_id`, type (L2VPN, L3VPN, DIA, IP Transit, CDN, Voice), description, status, tenant |
+| Identity | Unique `service_id`, type (L2VPN, L3VPN, DIA, IP Transit, CDN, Voice), description, status, tenant, parties (every tenant involved, e.g. both ends of an L2VPN) |
 | Capacity | Bandwidth and CIR (Mbps), SLA uptime target |
 | Lifecycle | Order date, planned activation, installed, contract start/end, requested disconnect, decommissioned, decommission reason |
 | Delivery | Devices, interfaces, cables, VLANs, prefixes, VRFs, ASNs, route targets, L2VPNs, tunnels, VMs |

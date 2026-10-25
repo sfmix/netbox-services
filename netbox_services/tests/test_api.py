@@ -3,6 +3,7 @@ from decimal import Decimal
 from django.urls import reverse
 from rest_framework import status
 
+from tenancy.models import Tenant
 from utilities.testing import APITestCase
 
 from netbox_services.models import Service
@@ -140,3 +141,28 @@ class ServiceCapacityAPITestCase(APITestCase):
         }
         response = self.client.post(url, data, format='json', **self.header)
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+
+
+class ServicePartiesAPITestCase(APITestCase):
+    model = Service
+
+    @classmethod
+    def setUpTestData(cls):
+        cls.acme = Tenant.objects.create(name='Acme', slug='acme')
+        cls.globex = Tenant.objects.create(name='Globex', slug='globex')
+        cls.service = Service.objects.create(service_id='L2-1', type='l2vpn', tenant=cls.acme)
+        cls.service.tenants.set([cls.acme, cls.globex])
+
+    def test_parties_exposed_in_detail(self):
+        self.add_permissions('netbox_services.view_service')
+        url = reverse('plugins-api:netbox_services-api:service-detail', kwargs={'pk': self.service.pk})
+        response = self.client.get(url, **self.header)
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(sorted(response.data['tenants']), sorted([self.acme.pk, self.globex.pk]))
+
+    def test_filter_by_party(self):
+        self.add_permissions('netbox_services.view_service')
+        url = reverse('plugins-api:netbox_services-api:service-list')
+        response = self.client.get(url, {'tenants': 'globex'}, **self.header)
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.data['count'], 1)

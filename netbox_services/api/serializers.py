@@ -8,6 +8,7 @@ class ServiceSerializer(NetBoxModelSerializer):
     url = serializers.HyperlinkedIdentityField(
         view_name='plugins-api:netbox_services-api:service-detail'
     )
+    tenants = serializers.PrimaryKeyRelatedField(many=True, read_only=True)
     devices = serializers.PrimaryKeyRelatedField(many=True, read_only=True)
     interfaces = serializers.PrimaryKeyRelatedField(many=True, read_only=True)
     cables = serializers.PrimaryKeyRelatedField(many=True, read_only=True)
@@ -35,6 +36,7 @@ class ServiceSerializer(NetBoxModelSerializer):
             'cir',
             'sla_uptime_percent',
             'tenant',
+            'tenants',
             'order_date',
             'planned_activation',
             'installed',
