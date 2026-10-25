@@ -3,6 +3,7 @@ from decimal import Decimal
 from django.urls import reverse
 from rest_framework import status
 
+from ipam.models import VLAN
 from utilities.testing import APITestCase
 
 from netbox_services.models import Service
@@ -140,3 +141,65 @@ class ServiceCapacityAPITestCase(APITestCase):
         }
         response = self.client.post(url, data, format='json', **self.header)
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+
+
+class ServiceRelationsAPITestCase(APITestCase):
+    model = Service
+
+    @classmethod
+    def setUpTestData(cls):
+        cls.vlans = [VLAN.objects.create(vid=vid, name=f'VLAN{vid}') for vid in (100, 200, 300)]
+        cls.dia = Service.objects.create(service_id='DIA-1', type='dia')
+        cls.l2vpn = Service.objects.create(service_id='L2VPN-1', type='l2vpn')
+        cls.l2vpn.vlans.add(cls.vlans[0])
+        cls.l2vpn.depends_on.add(cls.dia)
+
+    def detail_url(self, service):
+        return reverse('plugins-api:netbox_services-api:service-detail', kwargs={'pk': service.pk})
+
+    def test_create_service_with_relations(self):
+        self.add_permissions('netbox_services.add_service')
+        url = reverse('plugins-api:netbox_services-api:service-list')
+        data = {
+            'type': 'l2vpn',
+            'service_id': 'L2VPN-2',
+            'vlans': [self.vlans[1].pk, self.vlans[2].pk],
+            'depends_on': [self.dia.pk],
+        }
+        response = self.client.post(url, data, format='json', **self.header)
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+        service = Service.objects.get(service_id='L2VPN-2')
+        self.assertEqual(set(service.vlans.values_list('pk', flat=True)), {self.vlans[1].pk, self.vlans[2].pk})
+        self.assertEqual(list(service.depends_on.all()), [self.dia])
+
+    def test_patch_replaces_relations(self):
+        self.add_permissions('netbox_services.change_service')
+        response = self.client.patch(
+            self.detail_url(self.l2vpn), {'vlans': [self.vlans[2].pk]}, format='json', **self.header
+        )
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(list(self.l2vpn.vlans.all()), [self.vlans[2]])
+
+    def test_patch_without_relations_leaves_them_alone(self):
+        self.add_permissions('netbox_services.change_service')
+        response = self.client.patch(
+            self.detail_url(self.l2vpn), {'description': 'Updated'}, format='json', **self.header
+        )
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(list(self.l2vpn.vlans.all()), [self.vlans[0]])
+        self.assertEqual(list(self.l2vpn.depends_on.all()), [self.dia])
+
+    def test_patch_rejects_unknown_pk(self):
+        self.add_permissions('netbox_services.change_service')
+        response = self.client.patch(
+            self.detail_url(self.l2vpn), {'vlans': [999999]}, format='json', **self.header
+        )
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+
+    def test_patch_rejects_dependency_cycle(self):
+        self.add_permissions('netbox_services.change_service')
+        response = self.client.patch(
+            self.detail_url(self.dia), {'depends_on': [self.l2vpn.pk]}, format='json', **self.header
+        )
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertFalse(self.dia.depends_on.exists())
