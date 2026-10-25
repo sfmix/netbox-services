@@ -1,10 +1,11 @@
 from datetime import date
 
 from django.core.exceptions import ValidationError
-from django.test import TestCase
+from django.test import TestCase, override_settings
 
 from circuits.choices import CircuitStatusChoices
 from tenancy.models import Tenant
+from utilities.choices import ChoiceSet
 from utilities.exceptions import AbortRequest
 
 from netbox_services.models import Service, ServiceAttachment, ServiceTypeChoices
@@ -168,3 +169,22 @@ class ServiceAttachmentTestCase(TestCase):
         attachment = ServiceAttachment.objects.create(service=self.service, name='Contract')
         self.service.delete()
         self.assertFalse(ServiceAttachment.objects.filter(pk=attachment.pk).exists())
+
+
+class ServiceTypeChoicesTestCase(TestCase):
+    """FIELD_CHOICES is applied when the ChoiceSet class is built, so build a fresh one per test."""
+
+    def build_choices(self):
+        return type(ServiceTypeChoices)('ServiceTypeChoices', (ChoiceSet,), {
+            '__module__': ServiceTypeChoices.__module__,
+            'key': ServiceTypeChoices.key,
+            'CHOICES': [('dia', 'DIA')],
+        })
+
+    @override_settings(FIELD_CHOICES={'netbox_services.Service.type+': [('ixp', 'Internet Exchange')]})
+    def test_field_choices_extend_service_types(self):
+        self.assertEqual(self.build_choices().values(), ['dia', 'ixp'])
+
+    @override_settings(FIELD_CHOICES={'netbox_services.Service.type': [('ixp', 'Internet Exchange')]})
+    def test_field_choices_replace_service_types(self):
+        self.assertEqual(self.build_choices().values(), ['ixp'])
